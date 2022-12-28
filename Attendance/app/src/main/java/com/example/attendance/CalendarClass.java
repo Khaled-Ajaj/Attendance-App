@@ -11,6 +11,7 @@ import androidx.fragment.app.DialogFragment;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Date;
 
 public class CalendarClass extends DialogFragment {
 
@@ -51,5 +52,10 @@ public class CalendarClass extends DialogFragment {
     public String getDate()
     {
         return dateFormat.format(cal.getTime());
+    }
+
+    public Date getDateRaw()
+    {
+        return cal.getTime();
     }
 }

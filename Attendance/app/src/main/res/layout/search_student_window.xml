@@ -5,19 +5,11 @@
     android:layout_height="match_parent">
 
     <EditText
-        android:id="@+id/addedCourseName"
+        android:id="@+id/searchBar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:ems="10"
-        android:hint="Course Name"
-        android:inputType="textPersonName" />
-
-    <EditText
-        android:id="@+id/addedCourseID"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:ems="10"
-        android:hint="Course ID"
+        android:hint="Student Name or ID"
         android:inputType="textPersonName" />
 
     <RelativeLayout
@@ -25,14 +17,13 @@
         android:layout_height="100dp">
 
         <Button
-            android:id="@+id/addCrsBtn"
-            android:layout_width="match_parent"
+            android:id="@+id/searchStdBtn"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_alignParentStart="true"
             android:layout_alignParentTop="true"
             android:layout_alignParentEnd="true"
-
-            android:text="ADD">
+            android:text="SEARCH">
 
         </Button>
 

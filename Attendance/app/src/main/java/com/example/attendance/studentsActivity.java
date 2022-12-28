@@ -18,6 +18,7 @@ import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.ToggleButton;
 
@@ -29,6 +30,7 @@ public class studentsActivity extends AppCompatActivity {
     private String courseName;
     private String courseID;
     private TextView editName, editID;
+    private Intent goToSheets;
     StudentAdapter studentAdapter;
     CalendarClass cal = new CalendarClass();
     private int position;
@@ -36,6 +38,8 @@ public class studentsActivity extends AppCompatActivity {
     private Button addBtn;
     private Button dateBtn;
     private Button saveBtn;
+    private Button searchBtn;
+    private Button clearBtn;
     private RecyclerView recyclerView;
     private RecyclerView.LayoutManager layoutManager;
     private final ArrayList<Student> students = new ArrayList<Student>();
@@ -92,6 +96,16 @@ public class studentsActivity extends AppCompatActivity {
 
         saveBtn.setOnClickListener(view -> saveSheet());
 
+
+        searchBtn = findViewById(R.id.searchBtn);
+
+        searchBtn.setOnClickListener(view -> showSearchDialog());
+
+        clearBtn = findViewById(R.id.clearBtn);
+        clearBtn.setOnClickListener(view -> saveSheet());
+        clearBtn.setOnClickListener(view -> populateStudents());
+
+        
         // Register to receive messages.
         // We are registering an observer (mMessageReceiver) to receive Intents
         // with actions named "custom-message".
@@ -109,12 +123,14 @@ public class studentsActivity extends AppCompatActivity {
         for (int i = 0; i < students.size(); i++)
         {
             curr = students.get(i);
-            mDatabaseHelper.updateStatus(Integer.parseInt(curr.getID()), courseID, cal.getDate(), curr.getStatus());
+            mDatabaseHelper.updateStatus(Integer.parseInt(curr.getID()), courseID, cal.getDateRaw(), curr.getStatus());
+
         }
     }
 
     private void changeDate() {
-        
+
+        saveSheet();
         cal.show(getSupportFragmentManager(), "");
         cal.setOnCalendarClickListener(this::onCalendarOK);
 
@@ -127,6 +143,17 @@ public class studentsActivity extends AppCompatActivity {
 
 
         dateBtn.setText("DATE: " + cal.getDate());
+
+
+        Student curr = null;
+        for (int i = 0; i < students.size(); i++)
+        {
+            curr = students.get(i);
+            mDatabaseHelper.addStatus(Integer.parseInt(curr.getID()), courseID, cal.getDateRaw(), "Present");
+
+        }
+        populateStudents();
+
         studentAdapter.notifyDataSetChanged();
 
 
@@ -154,7 +181,7 @@ public class studentsActivity extends AppCompatActivity {
                 String newName = editName.getText().toString();
                 String newID = editID.getText().toString();
                 mDatabaseHelper.addStudent(courseID, Integer.parseInt(newID), newName);
-                mDatabaseHelper.addStatus(Integer.parseInt(newID), courseID, cal.getDate(), "Present");
+                mDatabaseHelper.addStatus(Integer.parseInt(newID), courseID, cal.getDateRaw(), "Present");
                 students.add(new Student(newName, newID));
                 studentAdapter.notifyDataSetChanged();
                 dlg.dismiss();
@@ -168,6 +195,7 @@ public class studentsActivity extends AppCompatActivity {
 
     private void populateStudents()
     {
+        //saveSheet();
         Cursor cursor = mDatabaseHelper.getStudents(courseID);
         students.clear();
 
@@ -177,10 +205,30 @@ public class studentsActivity extends AppCompatActivity {
             String name = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.STUDENT_NAME_KEY));
 
             students.add(new Student(name, String.valueOf(id)));
-            students.get(students.size()-1).setStatus(mDatabaseHelper.getStatus(id, courseID, cal.getDate()));
+            students.get(students.size()-1).setStatus(mDatabaseHelper.getStatus(id, courseID, cal.getDateRaw()));
+            studentAdapter.notifyDataSetChanged();
         }
         cursor.close();
     }
+
+    private void populateSearchResults(String searchText)
+    {
+        saveSheet();
+        Cursor cursor = mDatabaseHelper.getSearchStudents(courseID, searchText);
+        students.clear();
+
+        while (cursor.moveToNext())
+        {
+            int id = cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.STUDENT_ID_KEY));
+            String name = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.STUDENT_NAME_KEY));
+
+            students.add(new Student(name, String.valueOf(id)));
+            students.get(students.size()-1).setStatus(mDatabaseHelper.getStatus(id, courseID, cal.getDateRaw()));
+            studentAdapter.notifyDataSetChanged();
+        }
+        cursor.close();
+    }
+
 
 
     @Override
@@ -192,9 +240,19 @@ public class studentsActivity extends AppCompatActivity {
             // edit student info
             showEditDialog(item.getGroupId());
         }
-        else
+        else if (curr == 0)
         {
             deleteStudent(item.getGroupId());
+        }
+        else if (curr == 2)
+        {
+            // show stats
+            goToSheets = new Intent(studentsActivity.this, SheetsActivity.class);
+
+            goToSheets.putExtra("courseID", courseID);
+            goToSheets.putExtra("studentID", students.get(item.getGroupId()).getID());
+            goToSheets.putExtra("studentName", students.get(item.getGroupId()).getName());
+            startActivity(goToSheets);
         }
         return super.onContextItemSelected(item);
     }
@@ -204,6 +262,7 @@ public class studentsActivity extends AppCompatActivity {
         mDatabaseHelper.removeStudent(students.get(position).getID());
         students.remove(position);
         studentAdapter.notifyItemRemoved(position);
+        populateStudents();
 
     }
 
@@ -239,12 +298,52 @@ public class studentsActivity extends AppCompatActivity {
         });
     }
 
+    private void showSearchDialog()
+    {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        View view = LayoutInflater.from(this).inflate(R.layout.search_student_window, null);
+
+        builder.setView(view);
+        AlertDialog dlg = builder.create();
+        dlg.show();
+
+
+        EditText searchBar = view.findViewById(R.id.searchBar);
+
+
+        Button searchButton = view.findViewById(R.id.searchStdBtn);
+
+        searchButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                String newSearch = searchBar.getText().toString();
+                populateSearchResults(newSearch);
+                studentAdapter.notifyDataSetChanged();
+                dlg.dismiss();
+            }
+        });
+
+
+
+
+    }
+
+    @Override
+    public void onBackPressed() {
+        saveSheet();
+        super.onBackPressed();
+    }
+
+
     public BroadcastReceiver mMessageReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             // Get extra data included in the Intent
+
             String status = intent.getStringExtra("status");
             int pos = intent.getIntExtra("position", -1);
+            studentAdapter.notifyDataSetChanged();
+            //populateStudents();
             students.get(pos).setStatus(status);
             Log.d("UPDATING", students.get(pos).getName() + " to " + students.get(pos).getStatus());
 

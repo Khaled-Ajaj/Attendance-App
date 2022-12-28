@@ -59,6 +59,7 @@ public class StudentAdapter extends RecyclerView.Adapter<StudentAdapter.StudentV
         public void onCreateContextMenu(ContextMenu contextMenu, View view, ContextMenu.ContextMenuInfo contextMenuInfo) {
             contextMenu.add(getAdapterPosition(), 0, 0, "DELETE");
             contextMenu.add(getAdapterPosition(), 1, 0, "MODIFY");
+            contextMenu.add(getAdapterPosition(), 2, 0, "SHOW STATS");
 
         }
     }
@@ -80,7 +81,7 @@ public class StudentAdapter extends RecyclerView.Adapter<StudentAdapter.StudentV
         holder.stdID.setText(currStd.getID());
         String currStatus = currStd.getStatus();
 
-        if (currStatus == "Absent")
+        if (currStatus.equals("Absent"))
         {
             holder.stdStatus.setChecked(true);
         }

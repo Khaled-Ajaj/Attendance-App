@@ -15,25 +15,34 @@ import android.database.Cursor;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 
 public class HomePage extends AppCompatActivity {
 
     private static final String TAG = "HomePage";
+    private String dataToEmail;
     DatabaseHelper mDatabaseHelper;
 
+
     private Button addBtn;
+    private Button shareBtn;
     private EditText editName, editID;
-    RecyclerView recyclerView;
-    RecyclerView.LayoutManager layoutManager;
-    CourseAdapter courseAdapter;
-    ArrayList<Course> courses = new ArrayList<Course>();
+    private RecyclerView recyclerView;
+    private RecyclerView.LayoutManager layoutManager;
+    private CourseAdapter courseAdapter;
+    private ArrayList<Course> courses = new ArrayList<Course>();
     private String newName, newID;
+    final DateFormat dateFormat = new SimpleDateFormat("MM/dd/yyyy hh:mm:ss");
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -61,12 +70,38 @@ public class HomePage extends AppCompatActivity {
         courseAdapter.setOnItemClickListener(position -> switchActivity(position));
 
 
+        shareBtn = findViewById(R.id.shareBtn);
+
+        shareBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                getEmailData();
+                shareData();
+
+            }
+        });
+
+
+
         // Register to receive messages.
         // We are registering an observer (mMessageReceiver) to receive Intents
         // with actions named "custom-message".
         LocalBroadcastManager.getInstance(this).registerReceiver(mMessageReceiver,
                 new IntentFilter("to_delete"));
 
+
+    }
+
+
+
+    private void shareData() {
+        Date currentTime = Calendar.getInstance().getTime();
+
+        Intent i = new Intent(Intent.ACTION_SEND);
+        i.setType("text/plain");
+        i.putExtra(Intent.EXTRA_SUBJECT, "Attendace Data " + dateFormat.format(currentTime));
+        i.putExtra(Intent.EXTRA_TEXT, dataToEmail);
+        startActivity(Intent.createChooser(i, "Share Via"));
 
     }
 
@@ -166,6 +201,28 @@ public class HomePage extends AppCompatActivity {
         courseAdapter.notifyItemRemoved(position);
 
     }
+
+    private void getEmailData()
+    {
+        Cursor cursor = mDatabaseHelper.getAllStatusEntries();
+        String courseID, studentID, date, status;
+
+        dataToEmail = "courseID, studentID, Date, Status:\n";
+
+        while (cursor.moveToNext())
+        {
+            courseID = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COURSE_ID_KEY));
+            studentID = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.STUDENT_ID_KEY));
+            date = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.DATE_KEY));
+            status = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.STATUS_KEY));
+            dataToEmail += String.format("%s,%s,%s,%s\n", courseID, studentID, date, status);
+
+        }
+        cursor.close();
+        Log.d("DATA :3", dataToEmail);
+    }
+
+
 
 
 
